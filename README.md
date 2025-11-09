@@ -1,1 +1,1 @@
-# Planckd2025---Intellects
+# Planckd2025 - Intellects
