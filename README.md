@@ -271,7 +271,7 @@ print("-" * 65)
 
 
     
-![png](0.png)
+
     
 
 
@@ -521,7 +521,7 @@ print("-" * 35)
 
 
     
-![png](output_5_1.png)
+
     
 
 
@@ -606,7 +606,7 @@ print("-" * 75)
 
 
     
-![png](output_7_0.png)
+
     
 
 
@@ -971,7 +971,7 @@ plt.show()
 
 
     
-![png](output_11_1.png)
+
     
 
 
@@ -1077,25 +1077,13 @@ print("4. Observed Effect: The fidelity plot clearly shows that for T=1.0, the f
 
 
     
-![png](output_13_0.png)
-    
-
-
 
     
-![png](output_13_1.png)
-    
-
-
-    
-    --- Spectral Gap Analysis (Task b) ---
-    Minimum Spectral Gap: Δₘᵢₙ ≈ 0.5001 (occurs near s=0.5)
-    Required Adiabatic Runtime (T >> 4): We will simulate for T=4.0 and a non-adiabatic T=1.
 
 
 
     
-![png](output_13_3.png)
+
     
 
 
@@ -1107,7 +1095,19 @@ print("4. Observed Effect: The fidelity plot clearly shows that for T=1.0, the f
 
 
     
-![png](output_13_5.png)
+
+    
+
+
+    
+    --- Spectral Gap Analysis (Task b) ---
+    Minimum Spectral Gap: Δₘᵢₙ ≈ 0.5001 (occurs near s=0.5)
+    Required Adiabatic Runtime (T >> 4): We will simulate for T=4.0 and a non-adiabatic T=1.
+
+
+
+    
+
     
 
 
@@ -1233,7 +1233,7 @@ print('3. QAOA converges faster to C_max as p increases')
 
 
     
-![png](output_15_0.png)
+
     
 
 
@@ -1640,7 +1640,7 @@ for i, p_phi in enumerate(p_phi_values):
 
 
     
-![png](output_17_1.png)
+
     
 
 
