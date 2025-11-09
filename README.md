@@ -40,22 +40,33 @@ $$
 U = S \cdot (C \otimes I)
 $$
 
-where  
-- $C$ is the coin operator (Hadamard coin):  
+where:
+
+- **C** is the coin operator (Hadamard coin):
+
   $$
-  C = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}
+  C = \frac{1}{\sqrt{2}}
+  \begin{bmatrix}
+  1 & 1 \\
+  1 & -1
+  \end{bmatrix}
   $$
-- $S$ is the shift operator acting as  
+
+- **S** is the shift operator acting as:
+
   $$
   S|x,0\rangle = |x-1,0\rangle, \quad S|x,1\rangle = |x+1,1\rangle
   $$
 
-The **Root-Mean-Squared (RMS) displacement** scales as:  
+The **Root-Mean-Squared (RMS)** displacement scales as:
 
-- **Classical:**  $$\sigma(t) \propto \sqrt{t}$$  
-- **Quantum:**  $$\sigma(t) \propto t$$  
+- **Classical:**  
+  $$\sigma(t) \propto \sqrt{t}$$
+- **Quantum:**  
+  $$\sigma(t) \propto t$$
 
-Thus, the **Quantum Walk** achieves a **quadratic speedup** in spreading:  
+Thus, the **Quantum Walk** achieves a **quadratic speedup** in spreading:
+
 $$
 \mathcal{O}(t) \text{ vs. } \mathcal{O}(\sqrt{t})
 $$
