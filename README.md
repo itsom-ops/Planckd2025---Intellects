@@ -40,24 +40,6 @@ $$
 U = S \cdot (C \otimes I)
 $$
 
-where:
-
-- **C** is the coin operator (Hadamard coin):
-
-  $$
-  C = \frac{1}{\sqrt{2}}
-  \begin{bmatrix}
-  1 & 1 \\\\
-  1 & -1
-  \end{bmatrix}
-  $$
-
-- **S** is the shift operator acting as:
-
-  $$
-  S|x,0\rangle = |x-1,0\rangle, \quad S|x,1\rangle = |x+1,1\rangle
-  $$
-
 
 The **Root-Mean-Squared (RMS)** displacement scales as:
 
