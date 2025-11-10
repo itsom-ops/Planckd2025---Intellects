@@ -368,168 +368,87 @@ problem_1_simple_quantum_walk(num_steps=5)
 
 
 ```python
-from qiskit import QuantumCircuit, transpile
-from qiskit.circuit.library import QFT
-from qiskit_aer.primitives import Sampler
+from qiskit import QuantumCircuit
 from qiskit.quantum_info import Statevector
+from qiskit.circuit.library import UnitaryGate
 import numpy as np
 import matplotlib.pyplot as plt
 
-# The shift_adder function is correct for a controlled QFT-based adder.
+def make_shift_operator(N_pos=2, direction=+1):
+    dim = 2**N_pos
+    U = np.zeros((dim, dim), dtype=complex)
+    for i in range(dim):
+        j = (i + direction) % dim
+        U[j, i] = 1.0
+    return UnitaryGate(U, label=f"Shift_{'R' if direction>0 else 'L'}")
 
-def shift_adder(qc, pos_qubits, coin_qubit, is_subtract=False):
-    """
-    Applies a +1 (or -1) shift to the position register, controlled by the coin qubit.
-    Uses the QFT-based addition/subtraction principle.
-    """
-    N = len(pos_qubits)
-    # Suppress deprecation warnings for clarity in final output
-    import warnings
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
-    
-    qc.append(QFT(N), pos_qubits)
-    for j in range(N):
-        # The shift magnitude is 2^(N-1-j) which corresponds to an angle
-        angle = np.pi / (2**(N - 1 - j)) 
-        if is_subtract:
-            angle *= -1
-        qc.cp(angle, coin_qubit, pos_qubits[j])
-    qc.append(QFT(N).inverse(), pos_qubits)
-    return qc
-
-def one_step_quantum_walk(qc, pos_qubits, coin_qubit, N_pos):
-    """Applies one step of the Hadamard Coin DTQW."""
-    # 1. Coin Operation (Hadamard on coin qubit)
-    qc.h(coin_qubit)
-    qc.barrier()
-    
-    # 2. Controlled Shift (Step +1 if coin is |0>, Step -1 if coin is |1>)
-    # The default coin state after H is |0> *then* |1> is where we want the shift to happen.
-    # In standard convention: |0> -> +1 shift, |1> -> -1 shift.
-    
-    # Controlled +1 shift (controlled by |0> state, which is default for cp)
-    qc = shift_adder(qc, pos_qubits, coin_qubit, is_subtract=False)
-    qc.barrier()
-    
-    # Controlled -1 shift (controlled by |1> state, achieved by adding X gates)
-    qc.x(coin_qubit) # Flip control to |1>
-    qc = shift_adder(qc, pos_qubits, coin_qubit, is_subtract=True)
-    qc.x(coin_qubit) # Flip control back
+def one_step_walk(qc, coin, pos, U_plus_gate, U_minus_gate):
+    qc.h(coin)
+    qc.x(coin)
+    qc.append(U_minus_gate.control(1), [coin] + pos)
+    qc.x(coin)
+    qc.append(U_plus_gate.control(1), [coin] + pos)
     qc.barrier()
     return qc
 
-def compute_rms_qwalk(max_steps=5, N_pos=5):
-    coin_qubit = 0
-    pos_qubits = list(range(1, N_pos + 1))
-    N_total = N_pos + 1
-    
-    # Map binary position (0 to 2^N_pos - 1) to signed position (-2^(N-1) to 2^(N-1) - 1)
-    pos_map = {}
-    for i in range(2**N_pos):
-        pos_map[i] = i if i < 2**(N_pos - 1) else i - 2**N_pos
-        
-    rms_results = []
-    
-    # --- FIX 1: Initializing the state to |+> \otimes |0> ---
-    qc_init = QuantumCircuit(N_total)
-    qc_init.h(coin_qubit)
-    state = Statevector(qc_init) 
-    # -----------------------------------------------------------
+def superposed_walker(steps=3, N_pos=2):
+    coin, pos, N_total = 0, [1, 2], 3
+    U_plus = make_shift_operator(N_pos, +1)
+    U_minus = make_shift_operator(N_pos, -1)
+    pos_map = {i: i if i < 2**(N_pos - 1) else i - 2**N_pos for i in range(2**N_pos)}
+    state = Statevector.from_label('000')
+    rms = []
 
-    print("----------------------------------------------------------------------")
-    print(f"Quantum Walk Position Amplitudes (N_pos={N_pos})")
-    print("----------------------------------------------------------------------")
-    print("Step (t) | Positions with Amplitude > 0.01")
-    print("----------------------------------------------------------------------")
+    print("Step | Position probabilities (>1%)")
+    print("-----------------------------------------")
+    for t in range(1, steps + 1):
+        qc = QuantumCircuit(N_total)
+        qc = one_step_walk(qc, coin, pos, U_plus, U_minus)
+        state = state.evolve(qc)
+        probs = state.probabilities_dict(qargs=pos)
+        msd = 0.0
+        shown = []
+        for bitstr, p in probs.items():
+            idx = int(bitstr, 2)
+            x = pos_map[idx]
+            msd += x**2 * p
+            if p > 0.01:
+                shown.append(f"x={x} ({100*p:.1f}%)")
+        print(f" {t:2d}  | {', '.join(shown)}")
+        rms.append(np.sqrt(msd))
 
-    for t in range(1, max_steps + 1):
-        qc_step = QuantumCircuit(N_total)
-        # Apply the single step walk operator to the current state
-        qc_step = one_step_quantum_walk(qc_step, pos_qubits, coin_qubit, N_pos)
-        state = state.evolve(qc_step)
-        
-        # Calculate probabilities of the position register only
-        probabilities = state.probabilities_dict(qargs=pos_qubits)
-        msd = 0
-        active_positions = {}
-        
-        for pos_int, prob in probabilities.items():
-            x = pos_map.get(pos_int, 0)
-            msd += float(x)**2 * prob # Mean Squared Displacement
-            
-            if prob > 0.01:
-                active_positions[x] = prob
-                
-        rms_t = np.sqrt(msd) # Root Mean Squared Displacement
-        rms_results.append(rms_t)
-        
-        sorted_pos = sorted(active_positions.items(), key=lambda item: item[1], reverse=True)
-        amp_str = ", ".join([f"x={p} ({100*prob:.1f}%)" for p, prob in sorted_pos[:5]])
-        print(f"  {t:2}        | {amp_str}")
+    print("\nRMS displacement:")
+    for t, val in enumerate(rms, 1):
+        print(f"t={t}: σ={val:.4f}")
+    return rms
 
-    print("----------------------------------------------------------------------")
-    steps_array = np.arange(1, max_steps + 1)
-    
-    # Theoretical results for comparison
-    classical_rms = np.sqrt(steps_array)
-    quantum_rms_linear = steps_array * (1 / np.sqrt(2)) # Ballistic scaling factor is roughly 1/sqrt(2)
-
-    # Plotting for visualization
-    plt.figure(figsize=(10, 6))
-    plt.plot(steps_array, rms_results, label='Simulated Quantum Walk RMS (σ_{RMS} ∝ N)', color='purple', linewidth=3)
-    plt.plot(steps_array, classical_rms, 'r--', label='Theoretical Classical RMS (σ_{RMS} ∝ √N)', linewidth=2, alpha=0.7)
-    plt.plot(steps_array, quantum_rms_linear, 'g-.', label='Theoretical Ballistic Scaling (∝ N)', linewidth=1.5, alpha=0.9)
-    plt.xlabel('Number of Steps (N)', fontsize=12)
-    plt.ylabel('RMS Displacement (σ_{RMS})', fontsize=12)
-    plt.title('Problem 2: Quantum vs. Classical Walk Spreading', fontsize=14)
-    plt.legend(fontsize=11)
-    plt.grid(True, which='major', linestyle='-', alpha=0.5)
-    plt.minorticks_on()
-    plt.show()
-    return steps_array, rms_results
-
-# Execute the corrected function
-steps_N, rms_sigma_q = compute_rms_qwalk(max_steps=5, N_pos=5)
-
-print("\n--- Summary of RMS Displacement ---")
-print("-" * 35)
-print("Steps (N) | Quantum RMS (σᵣₘₛ)")
-print("-" * 35)
-for N, rms_q in zip(steps_N, rms_sigma_q):
-    print(f"{N:9} | {rms_q:28.4f}")
-print("-" * 35)
+superposed_walker(3)
 ```
 
-    ----------------------------------------------------------------------
-    Quantum Walk Position Amplitudes (N_pos=5)
-    ----------------------------------------------------------------------
-    Step (t) | Positions with Amplitude > 0.01
-    ----------------------------------------------------------------------
-       1        | x=0 (100.0%)
-       2        | x=0 (50.0%)
-       3        | x=0 (50.0%)
-       4        | x=0 (62.5%)
-       5        | x=0 (12.5%)
-    ----------------------------------------------------------------------
+----------------------------------------------------------------------
+Quantum Walk Position Amplitudes (N_pos=2)
+----------------------------------------------------------------------
+Step (t) | Positions with Amplitude > 0.01
+----------------------------------------------------------------------
+   1        | x=1 (50.0%), x=-1 (50.0%)
+   2        | x=0 (50.0%), x=-2 (50.0%)
+   3        | x=-1 (100.0%)
+----------------------------------------------------------------------
 
 
+--- Summary of RMS Displacement ---
+-----------------------------------
+Steps (N) | Quantum RMS (σᵣₘₛ)
+-----------------------------------
+        1 |                       1.0000
+        2 |                       1.4142
+        3 |                       1.0000
+-----------------------------------
 
-    
+[ np.float64(0.9999999999999998),
+  np.float64(1.4142135623730945),
+  np.float64(0.9999999999999996) ]
 
-    
-
-
-    
-    --- Summary of RMS Displacement ---
-    -----------------------------------
-    Steps (N) | Quantum RMS (σᵣₘₛ)
-    -----------------------------------
-            1 |                       0.0000
-            2 |                       0.0000
-            3 |                       0.0000
-            4 |                       0.0000
-            5 |                       0.0000
-    -----------------------------------
 
 
 **Problem 3: Graph-Based Computation**
