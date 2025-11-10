@@ -854,7 +854,7 @@ plt.show()
 
 ```
 
-    --- Problem 4: Quantum Oscillator Walk Amplitudes (t=1, 2, 3) ---
+    --- Problem 5: Quantum Oscillator Walk Amplitudes (t=1, 2, 3) ---
     |n, q> basis is indexed 2n+q. Start: |0, 0> (Index 0)
     t=1: P(n, t) -> n=1 (0.50)
     t=2: P(n, t) -> n=0 (0.25), n=2 (0.50)
